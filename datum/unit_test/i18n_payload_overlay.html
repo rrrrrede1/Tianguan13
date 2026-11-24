@@ -1,0 +1,15 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../"><link rel="stylesheet" href="dmdoc.css"><title>/datum/unit_test/i18n_payload_overlay - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>i18n_payload_overlay <aside>/<a href="datum.html">datum</a>/<a href="datum/unit_test.html">unit_test</a>/<a href="datum/unit_test/i18n_payload_overlay.html">i18n_payload_overlay</a></aside> <a href="https://github.com/rrrrrede1/Tianguan13/blob/5dc11166f5898434f45eb8c8db6f740de2c6626f/code/modules/unit_tests/~zh/i18n_payload_overlay.dm#L18"><img src="git.png" width="16" height="16" title="code/modules/unit_tests/~zh/i18n_payload_overlay.dm 18"></a></h1><p>守护 TGUI 负载的<strong>非破坏性</strong>本地化：负载值保持 canonical English，译文单独走 overlay
+（<code>json_data[&quot;i18n&quot;]</code>），由 TS 在渲染期查表显示。</p>
+<p>为什么这条必须有测试：破坏性改写的失败形态是<strong>静默</strong>的 —— 前端把被译成中文的显示值原样回传，
+服务端仍拿英文比较/查表，<code>ui_act</code> 直接 return，玩家看到「点了没反应、无任何报错」。出生管理器、
+DNA 控制台染色体、大气警报「清除」都栽在这上面，而且只有<strong>多词</strong>值坏（单词过不了多词门槛），
+极易被当成个别条目漏译。</p>
+<p>断言：
+① 普通键（可能兼作标识符）：值<strong>原样不动</strong>，译文进 overlay；
+② 扁平串列表元素（大气警报的区域名列表即此形态）：同样不动 + 进 overlay；
+③ <code>payload_prose_keys</code> 里的散文键：仍就地改写（它们渲染在 auto-localize 够不到的位置，
+且散文不可能被 act() 拿去比较），且<strong>不</strong>进 overlay；
+④ <code>payload_skip_keys</code> 子树：完全不碰；
+⑤ 不传 overlay 的旧调用（早期 string_cache 那条路）：行为与从前一致，一律就地改写；
+⑥ 玩家角色名（<code>i18n_identity_names</code>）：即使目录里有同形词条也不翻，且在 overlay 里登记成原样
+（角色名 <code>Not</code> 撞上电路「非门」被显示成「不是」即此）。</p></main><footer>tgstation.dme <a href="https://github.com/rrrrrede1/Tianguan13/tree/5dc11166f5898434f45eb8c8db6f740de2c6626f">5dc1116</a> (main) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

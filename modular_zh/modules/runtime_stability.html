@@ -1,0 +1,22 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_zh/modules/runtime_stability/readme.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>Runtime stability fixes <aside>modular_zh/modules/runtime_stability/readme.md</aside> <a href="https://github.com/rrrrrede1/Tianguan13/blob/5dc11166f5898434f45eb8c8db6f740de2c6626f/modular_zh/modules/runtime_stability/readme.md"><img src="git.png" width="16" height="16" title="modular_zh/modules/runtime_stability/readme.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><p>Module ID: <code>RUNTIME_STABILITY</code></p>
+<h2 id="description">Description</h2>
+<p>Small fixes for runtime storms that can stall a live server. These changes preserve normal lighting and positional-audio behavior while preventing invalid component and signal state.</p>
+<h2 id="tg-proc-file-changes">TG Proc/File Changes</h2>
+<ul>
+<li><code>code/datums/components/overlay_lighting.dm</code>: when a light's range changes, unregister it from spatial-grid cells using the previous range before registering the new range. This prevents range reductions from leaving stale component keys behind.</li>
+<li><code>code/datums/3d_sounds/_3d_sound.dm</code>: when a sound source is also a listener, replace the overlapping listener movement/deletion callbacks before registering the source callbacks.</li>
+<li><code>code/modules/unit_tests/_unit_tests.dm</code>: include the Nova runtime-stability regression tests.</li>
+<li><code>code/modules/unit_tests/~zh/runtime_stability.dm</code>: cover spatial-grid cleanup after reducing a light's range and source/listener signal overlap.</li>
+</ul>
+<h2 id="modular-overrides">Modular Overrides</h2>
+<ul>
+<li>N/A</li>
+</ul>
+<h2 id="defines">Defines</h2>
+<ul>
+<li>N/A</li>
+</ul>
+<h2 id="credits">Credits</h2>
+<ul>
+<li>sernseek</li>
+</ul></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/rrrrrede1/Tianguan13/tree/5dc11166f5898434f45eb8c8db6f740de2c6626f">5dc1116</a> (main) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

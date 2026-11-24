@@ -1,0 +1,33 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_zh/modules/say_channel_picker/readme.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>modular_zh/modules/say_channel_picker/readme.md <a href="https://github.com/rrrrrede1/Tianguan13/blob/5dc11166f5898434f45eb8c8db6f740de2c6626f/modular_zh/modules/say_channel_picker/readme.md"><img src="git.png" width="16" height="16" title="modular_zh/modules/say_channel_picker/readme.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><h2 id="say-box-channel-and-language-picker">Say box channel and language picker</h2>
+<p>Module ID: SAY_CHANNEL_PICKER</p>
+<h3 id="description">Description:</h3>
+<p>Radio channels and languages are chosen in the say box with typed prefixes (<code>;</code>, <code>:e</code>, <code>.e</code>, <code>,x</code>). With a Chinese input method on, the punctuation turns full-width (<code>；</code> <code>：</code> <code>。</code> <code>，</code>) and the letter after it starts a pinyin composition, so every radio message means switching the input method off and on again.</p>
+<p>The say box gets a 「频」 button next to the mood button. It opens a list of the radio channels the speaker's radio actually has (common first, binary for silicons and binary keys) and, when the speaker knows more than one, the languages they can speak. Picking a channel works like typing its prefix: the channel button changes and the message is sent with that prefix. Picking a language puts <code>,x</code> in front of every message sent on Say, Radio or Whisper until another language (or the default one) is picked; the button is highlighted while a non-default language is in use, and the language name shows on hover.</p>
+<p>The say box still sends the ordinary prefixes, so speech parsing on the server is unchanged.</p>
+<ul>
+<li>When the say box opens, the server answers its <code>open</code> message with <code>speechOptions</code>: <code>channels</code> and <code>languages</code>, each a list of <code>{prefix, name}</code>, languages also carrying <code>selected</code> for the one spoken without a prefix.</li>
+<li>The radio is the one prefixes talk into: <code>ears</code> for humans, <code>radio</code> for silicons. Other mobs get no channels.</li>
+<li>Channels without a say box theme (<code>RADIO_PREFIXES</code>) are not offered, since the channel button could not show them.</li>
+<li>Channel names (<code>Common</code>, <code>Science</code>, ...) are identifiers compared in English everywhere, and several have two competing translations in the catalog, so their labels and the missing language names live in the scoped table <code>strings/i18n/say_picker_labels.json</code>. Anything not in it falls back to <code>lang_reverse_text</code>, then to the English name.</li>
+</ul>
+<h3 id="tg-proc-file-changes">TG Proc/File Changes:</h3>
+<ul>
+<li>N/A</li>
+</ul>
+<h3 id="modular-overrides">Modular Overrides:</h3>
+<ul>
+<li><code>modular_zh/modules/say_channel_picker/code/say_channel_picker.dm</code>: <code>/datum/tgui_say/open()</code> (calls parent)</li>
+</ul>
+<h3 id="defines">Defines:</h3>
+<ul>
+<li>N/A</li>
+</ul>
+<h3 id="included-files-that-are-not-contained-in-this-module">Included files that are not contained in this module:</h3>
+<ul>
+<li><code>tgui/packages/tgui-say/ChannelPicker.tsx</code></li>
+<li><code>tgui/packages/tgui-say/TguiSay.tsx</code> (<code>ZH EDIT</code> markers)</li>
+<li><code>tgui/packages/tgui-say/styles/styles.scss</code> (<code>ZH EDIT</code> markers)</li>
+<li><code>strings/i18n/say_picker_labels.json</code>, registered in <code>strings/i18n/catalog-domains.json</code></li>
+</ul>
+<h3 id="credits">Credits:</h3>
+<p>sernseek</p></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/rrrrrede1/Tianguan13/tree/5dc11166f5898434f45eb8c8db6f740de2c6626f">5dc1116</a> (main) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

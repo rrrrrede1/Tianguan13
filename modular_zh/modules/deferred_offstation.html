@@ -1,0 +1,57 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_zh/modules/deferred_offstation/readme.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>modular_zh/modules/deferred_offstation/readme.md <a href="https://github.com/rrrrrede1/Tianguan13/blob/5dc11166f5898434f45eb8c8db6f740de2c6626f/modular_zh/modules/deferred_offstation/readme.md"><img src="git.png" width="16" height="16" title="modular_zh/modules/deferred_offstation/readme.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><h2 id="deferred-off-station-loading">Deferred off-station loading</h2>
+<p>Module ID: DEFERRED_OFFSTATION</p>
+<h3 id="description">Description:</h3>
+<p>Lavaland, the lava and space ruins and the roundstart away mission used to load and initialize
+during Master init, before the lobby opened. On MetaStation with production ruin budgets that was
+over half of init (98.6s → 34.2s without them). With <code>DEFER_OFFSTATION_LOAD</code> set
+(<code>config/nova/config_nova.txt</code>), init skips them and they load in the lobby right after init:</p>
+<ol>
+<li><strong>Placement</strong> (a few seconds, does not yield): lavaland, the away mission, lava ruins, cave
+generation, rivers, reserved ruins and population, all in map loader mode so every new atom
+stays uninitialized, exactly as during init. Not yielding is required: the map loader state is
+global, and the cave generator replaces turfs with <code>new</code> on the assumption that they never
+initialized.</li>
+<li><strong>Space ruins</strong>: their levels already exist (created during init, so z-level transitions are
+unchanged); the ruins load the normal mid-round way.</li>
+<li><strong>Initialization</strong>: everything left uninitialized on the new levels is initialized in one
+<code>InitializeAtoms</code> call in <code>initTemplateBounds()</code> order (areas, turfs, objs, mobs), then
+lighting, power, atmos, weather, ore vents and mining camera consoles are set up the way their
+subsystems would have during init. With nobody connected this runs at init speed; with players
+in the lobby it yields every tick. Roundstart shuttles of deferred docks are queued and load
+after the batch (during init SSshuttle also loads them only after every atom exists); the round
+does not wait for them.</li>
+</ol>
+<p>The load starts once the assets queued during init have generated (at most 60s later): holding the
+MC right after init pushed their generation into the moment the first players connect.</p>
+<p>The round start waits for the load if the lobby countdown ends first. The MC's
+<code>sleep_offline_after_initializations</code> is held back until the load finishes, otherwise an empty
+server would freeze it until the first player connects.</p>
+<p>Covered by <code>/datum/unit_test/deferred_offstation</code>: unit tests start after the round starts, so the
+whole suite runs on the deferred world.</p>
+<h3 id="tg-proc-file-changes">TG Proc/File Changes:</h3>
+<ul>
+<li><code>code/controllers/subsystem/mapping.dm</code>: <code>Initialize()</code>, <code>loadWorld()</code>, <code>proc/setup_ruins()</code>, <code>proc/setup_rivers()</code> (new include parameters)</li>
+<li><code>code/controllers/master.dm</code>: <code>proc/Initialize()</code> starts the load</li>
+<li><code>code/controllers/subsystem/ticker.dm</code>: <code>fire()</code> holds the round start</li>
+<li><code>code/modules/library/bookcase.dm</code>: <code>proc/load_shelf()</code> skips books that have not initialized yet</li>
+<li><code>code/game/turfs/open/lava.dm</code>: <code>initialize_occupant()</code> leaves occupants that are not initialized yet to <code>on_atom_inited()</code></li>
+<li><code>code/modules/shuttle/stationary_port/stationary_port.dm</code>: <code>LateInitialize()</code> queues the roundstart shuttle during the deferred batch</li>
+<li><code>code/modules/asset_cache/spritesheet/batched/batched_spritesheet.dm</code>: <code>should_refresh()</code> counts its async cache check in <code>SSasset_loading.assets_generating</code>, so the queue-drained <code>rustg_iconforge_cleanup()</code> cannot drop it mid-wait (&quot;cache check UNKNOWN ERROR: NO SUCH JOB&quot;)</li>
+<li><code>code/__HELPERS/_planes.dm</code>: <code>check_topdown_validity()</code> judges a FLOAT_PLANE visual by the plane of the atom showing it (the deferred world surfaced this false positive in <code>plane_layer_sanity</code>)</li>
+</ul>
+<h3 id="modular-overrides">Modular Overrides:</h3>
+<ul>
+<li><code>modular_nova/master_files/code/controllers/subsystem/mapping.dm</code>: <code>setup_ruins()</code> signature</li>
+</ul>
+<h3 id="defines">Defines:</h3>
+<ul>
+<li>N/A</li>
+</ul>
+<h3 id="included-files-that-are-not-contained-in-this-module">Included files that are not contained in this module:</h3>
+<ul>
+<li><code>code/modules/unit_tests/~zh/deferred_offstation.dm</code></li>
+</ul>
+<h3 id="credits">Credits:</h3>
+<ul>
+<li>sernseek</li>
+</ul></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/rrrrrede1/Tianguan13/tree/5dc11166f5898434f45eb8c8db6f740de2c6626f">5dc1116</a> (main) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

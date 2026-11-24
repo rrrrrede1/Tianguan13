@@ -1,0 +1,65 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_zh/modules/sim_players/readme.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>modular_zh/modules/sim_players/readme.md <a href="https://github.com/rrrrrede1/Tianguan13/blob/5dc11166f5898434f45eb8c8db6f740de2c6626f/modular_zh/modules/sim_players/readme.md"><img src="git.png" width="16" height="16" title="modular_zh/modules/sim_players/readme.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><h2 id="simulated-players">Simulated players</h2>
+<p>Module ID: SIM_PLAYERS</p>
+<h3 id="description">Description:</h3>
+<p>An autopilot that plays as real connected clients, for local testing. Some bugs only happen with
+a real DreamSeeker on the other end: asset delivery, chat, TGUI windows, browse() pages, a client
+connecting while something else holds the MC. A mock client (<code>/datum/client_interface</code>) never
+touches any of that, and BYOND has no Linux client, so the clients run in the Windows VM and the
+server drives them.</p>
+<p>Every action goes through the entry point the client's own input uses, so the same checks,
+logging and rate limits run:</p>
+<table><thead><tr><th>Action</th><th>Entry point</th></tr></thead><tbody>
+<tr><td>lobby buttons (ready, character setup, game options, manifest, latejoin menu)</td><td><code>client.Topic()</code> with the title screen's href</td></tr>
+<tr><td>TGUI buttons (latejoin job pick)</td><td><code>client.Topic()</code> with the message the TGUI frontend sends</td></tr>
+<tr><td>walking</td><td><code>client.Move()</code>, one key press at a time, waiting out the move delay</td></tr>
+<tr><td>clicking map atoms (doors, machines, items, people)</td><td><code>client.Click()</code></td></tr>
+<tr><td>talking, emotes, radio</td><td><code>mob.say_verb()</code> (what the say box calls)</td></tr>
+<tr><td>examining</td><td>the <code>examinate</code> verb</td></tr>
+<tr><td>in-hand use, drop</td><td><code>attack_self()</code>, <code>dropItemToGround()</code></td></tr>
+<tr><td>swap hands</td><td>the X key's keybinding (<code>swap_hands_row</code>)</td></tr>
+<tr><td>preferences window</td><td><code>prefs.ui_interact()</code></td></tr>
+</tbody></table>
+<p>In the lobby it readies up (latejoins as an Assistant once the round is running). In the round
+most of its time goes to a <strong>map tour</strong>: on first use the subsystem indexes every machine,
+structure and loose item on the station's areas (doors, windows, grilles, cables, pipes and the
+supermatter left out), and each driven player picks a type nobody has used yet, paths there with
+<code>get_path_to()</code> using its ID's access, walks the path key press by key press (doors open by
+bumping), examines the target and clicks it with the free hand or the held item. The rest is
+talking, emotes, examining what is in view, using the held item, dropping it and opening the
+preferences window. Dead, it ghosts after 30s and orbits people. Windows it opens close again
+after 12s. Grenades, transfer valves and bomb cores are never used in hand.</p>
+<h3 id="turning-it-on">Turning it on</h3>
+<ul>
+<li><code>-params &quot;sim-players=all&quot;</code> (or a comma separated ckey list) on DreamDaemon drives the matching
+clients from the moment they connect. Without the param the subsystem does not initialize and
+the admin verb below does not exist. Only whoever launches DreamDaemon can set it; nothing a
+player sends reaches world params.</li>
+<li>A server managed by TGS (every production server) refuses the autopilot even with the param,
+so a stray launch param on production does nothing.</li>
+<li><code>sim-access=all</code> gives driven crew station-wide access on their ID, so the tour reaches every
+room; without it they keep their job's access and the tour skips what it cannot path to.</li>
+<li>Admin verb 「自动驾驶接管自己」 (R_DEBUG, only on such a server) hands your own client to the
+autopilot, and back.</li>
+</ul>
+<p>Every action is logged to <code>sim_players.log</code> in the round's log directory as
+<code>ckey | action | target | mob type @ location</code>, so a runtime can be lined up with what the player
+was doing.</p>
+<h3 id="running-a-round">Running a round: <code>tools/zh/sim-players.sh</code></h3>
+<pre><code class="language-sh">tools/build/build.sh dm
+tools/zh/sim-players.sh --minutes 10 --clients 1
+</code></pre>
+<p>Starts DreamDaemon on port 1337 (the port the host firewall opens to the VM) with the autopilot
+on, launches DreamSeeker in the VM's desktop session through a scheduled task, lets it play,
+takes VM screenshots halfway and at the end, stops only the DreamSeeker processes it started,
+stops the server and writes <code>sim_report.txt</code> next to the round logs: logins, autopilot action
+counts, how many object types the tour used, each distinct runtime with its count, first time
+and the last autopilot action before it, and TGUI errors. <code>--connect init</code> waits for Master init before connecting (default: connect as
+soon as the port listens, like players who join during init). <code>--job-access</code> drops
+<code>sim-access=all</code>. <code>--attach</code> uses a server already running on the port instead.</p>
+<p>Clients share the VM's BYOND key. A second connection with the same key takes over the first's
+mob, so more than one client needs more keys (separate Windows users logged into BYOND, or guest
+logins when the server allows guests).</p>
+<h3 id="included-files-that-are-not-contained-in-this-module">Included files that are not contained in this module:</h3>
+<ul>
+<li><code>tools/zh/sim-players.sh</code></li>
+</ul></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/rrrrrede1/Tianguan13/tree/5dc11166f5898434f45eb8c8db6f740de2c6626f">5dc1116</a> (main) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

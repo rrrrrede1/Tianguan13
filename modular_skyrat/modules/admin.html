@@ -1,0 +1,36 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_skyrat/modules/admin/readme.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>modular_skyrat/modules/admin/readme.md <a href="https://github.com/rrrrrede1/Tianguan13/blob/5dc11166f5898434f45eb8c8db6f740de2c6626f/modular_skyrat/modules/admin/readme.md"><img src="git.png" width="16" height="16" title="modular_skyrat/modules/admin/readme.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><p>https://github.com/Skyrat-SS13/Skyrat-tg/pulls</p>
+<h2 id="title-admin">Title: Admin</h2>
+<p>MODULE ID: ADMIN</p>
+<h3 id="description">Description:</h3>
+<p>Adds multiple admin features, including loud ASAY, rich text controls, explicit runtime TTS controls, and localized station announcement speech.</p>
+<h3 id="tg-proc-changes">TG Proc Changes:</h3>
+<ul>
+<li>code\datums\chatmessage.dm &gt; /datum/chatmessage/proc/generate_image</li>
+<li>code\game\say.dm &gt; /atom/movable/proc/compose_message</li>
+<li>code\modules\admin\verbs\adminhelp.dm</li>
+<li>code\modules\admin\verbs\adminpm.dm</li>
+<li>code\modules\admin\admin_verbs.dm</li>
+<li>code\modules\mob\living\emote.dm &gt; /datum/emote/living/custom/run_emote</li>
+<li>code__HELPERS\tts.dm &gt; /proc/tts_speech_filter</li>
+<li>code\modules\admin\verbs\debug.dm</li>
+<li>code\controllers\subsystem\tts.dm &gt; /datum/controller/subsystem/tts</li>
+<li>code__HELPERS\priority_announce.dm &gt; /proc/priority_announce, /proc/minor_announce, /proc/level_announce, /proc/dispatch_announcement_to_players</li>
+<li>code\controllers\subsystem\ticker.dm &gt; /datum/controller/subsystem/ticker/proc/setup</li>
+<li>code\game\machinery\announcement_system.dm &gt; /obj/machinery/announcement_system/Initialize</li>
+<li>code\datums\communications.dm &gt; /datum/communciations_controller/proc/make_announcement</li>
+</ul>
+<h3 id="defines">Defines:</h3>
+<ul>
+<li>N/A</li>
+</ul>
+<h3 id="master-file-additions">Master file additions</h3>
+<ul>
+<li>N/A</li>
+</ul>
+<h3 id="included-files-that-are-not-contained-in-this-module">Included files that are not contained in this module:</h3>
+<ul>
+<li>code\modules\unit_tests~zh\tts_controls.dm</li>
+</ul>
+<h3 id="credits">Credits:</h3>
+<p>Gandalf2k15 - Porting and Refactoring
+Akrilla - OG code</p></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/rrrrrede1/Tianguan13/tree/5dc11166f5898434f45eb8c8db6f740de2c6626f">5dc1116</a> (main) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_zh/modules/ime_keyboard/readme.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>modular_zh/modules/ime_keyboard/readme.md <a href="https://github.com/rrrrrede1/Tianguan13/blob/5dc11166f5898434f45eb8c8db6f740de2c6626f/modular_zh/modules/ime_keyboard/readme.md"><img src="git.png" width="16" height="16" title="modular_zh/modules/ime_keyboard/readme.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><h2 id="input-method-friendly-controls">Input method friendly controls</h2>
+<p>Module ID: IME_KEYBOARD</p>
+<h3 id="description">Description:</h3>
+<p>With a Chinese, Japanese or Korean input method switched on, keystrokes are consumed by the input method before DreamSeeker's key macros see them: pressing WASD opens a candidate window instead of moving, and every hotkey stops working.</p>
+<p>The native map control's input method cannot be changed from the server, but the browser controls sent to the client can. This module places a 1x1 WebView2 control (<code>mapwindow.ime_capture</code>) in the map window and keeps keyboard focus on a non-editable element inside it. Chromium disables the input method for its window while a non-editable element has focus, so keys arrive unmodified.</p>
+<ul>
+<li>The page forwards each key exactly like the native <code>Any</code> macro does: <code>KeyDown &quot;W&quot; [[map.mouse-pos]] [[map.size]]</code>. The capture page uses the built-in <code>BYOND.command()</code> bridge when available and the existing winset transport on older clients. The embedded wingets are expanded by the client, so keybindings get the same mouse position as with native macros. The page uses <code>KeyboardEvent.code</code> (physical key), falling back to <code>keyCode</code>.</li>
+<li>Native macros never fire while a browser control has focus. The page forwards the press before running the injected Escape, Tab, Back or admin macro, so a focus transfer or reset cannot precede the press it should clean up.</li>
+<li>When the map takes focus back (clicking the map, closing the say box or a popup), the page reclaims it locally with <code>winget</code>/<code>winset</code>, without a server round trip. Editable inputs (chat bar, say box, TGUI text fields) are never reclaimed, so typing with the input method works as usual.</li>
+<li>The native map sends physical key releases directly through explicit <code>+UP</code> macros for every physical key recognized by the page. A key first pressed in the browser can miss the native wildcard release when focus changes. The page sends the same <code>KeyUp</code> command for DOM releases. The server owns the held-key state and resolves current bindings, including secondary slots and chords. Ordinary movement rebinding takes effect without reloading the page.</li>
+<li>The skin's <code>ShiftUp</code> macro also sends the key release, so the module does not create a second <code>Shift+UP</code> macro. Both the skin and the capture page switch the map's right-click behavior locally when Shift changes. Observers keep their ordinary right-click menu.</li>
+<li>Keys without a preference binding still reach raw game handlers such as AI camera shortcuts. Keyboard repeat is ignored. Entering chat or switching applications resets game holds once per focus transition. Focus polling runs only while the capture page is unfocused.</li>
+<li>While this preference is enabled, a single-key movement binding takes priority over a communication action on the same key. With east on L, pressing L walks east even if L is still bound to LOOC. Players can assign LOOC another key or a chord such as Ctrl+L.</li>
+<li>The injected macro commands are rebuilt whenever <code>update_special_keybinds()</code> runs: the admin holder is associated after preferences are applied on login, and auto-deadmin/readmin and rebinding change the asay key later.</li>
+</ul>
+<p>The feature is a game preference (<code>ime_keyboard</code>, default on). Turning it off removes the control and returns focus to the map.</p>
+<h3 id="deployment-and-limitations">Deployment and limitations</h3>
+<p>Rebuild and deploy the game resources and TGUI bundles together. DreamSeeker receives the capture page from the server at login. Players keep their Chinese IME enabled throughout gameplay and chat; no Windows utility, keyboard layout change, or client installation is required. An explicitly disabled preference stays disabled.</p>
+<p>The server distributes DM skin settings and the capture HTML at login; keyboard events still originate in DreamSeeker. The native map keeps its normal hit testing, HUD, clicks and drags. It can briefly take focus; there is no documented map setting to prevent that while keeping it interactive. The native map handles releases during that interval. Entering chat deliberately resets game holds and leaves composition keystrokes to the input method.</p>
+<p>Run the capture-page event regressions with <code>node --test tools/zh/ime-capture.test.mjs</code> (Node 22+). For a DreamSeeker smoke test, enable Microsoft Pinyin, walk diagonally, click the map while releasing one direction, then use another shortcut before releasing the second direction. Also check holding Space through a throw, opening chat while walking, and Alt-Tab. Confirm movement stops without another tap and chat can still compose Chinese text. As a living character, Shift-right-click to open the native menu, then release Shift and right-click a held bottle or an item in open storage. Repeat while moving focus between the capture page, the map, and chat.</p>
+<h3 id="tg-proc-file-changes">TG Proc/File Changes:</h3>
+<ul>
+<li><code>code/modules/client/client_procs.dm</code>: <code>/client/proc/update_special_keybinds()</code> (modular override, calls parent)</li>
+<li><code>code/modules/keybindings/bindings_client.dm</code>: movement and communication key dispatch</li>
+<li><code>code/modules/keybindings/setup.dm</code>: the modular <code>erase_all_macros()</code> override marks the explicit release macros for reinstallation</li>
+<li><code>code/modules/escape_menu/escape_menu.dm</code>: the focus-reset verb runs through the same instant native path as key presses and releases</li>
+</ul>
+<h3 id="modular-overrides">Modular Overrides:</h3>
+<ul>
+<li>N/A</li>
+</ul>
+<h3 id="defines">Defines:</h3>
+<ul>
+<li>N/A</li>
+</ul>
+<h3 id="included-files-that-are-not-contained-in-this-module">Included files that are not contained in this module:</h3>
+<ul>
+<li><code>tgui/packages/tgui/interfaces/PreferencesMenu/preferences/features/game_preferences/nova/ime_keyboard.tsx</code></li>
+</ul>
+<h3 id="credits">Credits:</h3>
+<p>sernseek</p></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/rrrrrede1/Tianguan13/tree/5dc11166f5898434f45eb8c8db6f740de2c6626f">5dc1116</a> (main) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

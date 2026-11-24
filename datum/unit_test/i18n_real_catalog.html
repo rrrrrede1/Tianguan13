@@ -1,0 +1,11 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../"><link rel="stylesheet" href="dmdoc.css"><title>/datum/unit_test/i18n_real_catalog - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>i18n_real_catalog <aside>/<a href="datum.html">datum</a>/<a href="datum/unit_test.html">unit_test</a>/<a href="datum/unit_test/i18n_real_catalog.html">i18n_real_catalog</a></aside> <a href="https://github.com/rrrrrede1/Tianguan13/blob/5dc11166f5898434f45eb8c8db6f740de2c6626f/code/modules/unit_tests/~zh/i18n_real_catalog.dm#L15"><img src="git.png" width="16" height="16" title="code/modules/unit_tests/~zh/i18n_real_catalog.dm 15"></a></h1><p>用<strong>真目录</strong>跑一遍显示链路的端到端抽查。</p>
+<p>i18n_template_match 注入合成模板验证引擎逻辑，i18n_unreverse 验证反查往返——两者都用假数据，
+所以「引擎没问题、真目录里那条却翻不出来」这一格是空的。玩家上报的漏译十有八九落在这一格：
+键在、译文在、调用点也对，中间某一环（转义、锚长门槛、半翻译自匹配…）把它悄悄吃掉。</p>
+<p>这里挑几条<strong>形态各异</strong>的真实条目，按它们在游戏里的实际渲染形态喂进落地层，断言出来是中文：
+① 插值句经模板逆匹配（手术可见消息，span 包裹 + 两个实参）；
+② 纯串经整串反查（LANG 实参碎片）；
+③ 域内表（史莱姆颜色、警报类别，故意不在全局反查表里）。
+目录条目被删或被改成半翻译时这里会红——比等玩家截图快。</p>
+<p>locale 不是 zh-Hans 时（en / qps-ploc / 精简签出）允许跳过；locale <strong>已经是</strong> zh-Hans
+却没加载目录 = 假绿，必须失败。跑 <code>bash tools/i18n/test.sh catalog</code>。</p></main><footer>tgstation.dme <a href="https://github.com/rrrrrede1/Tianguan13/tree/5dc11166f5898434f45eb8c8db6f740de2c6626f">5dc1116</a> (main) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

@@ -1,0 +1,204 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_zh/modules/i18n/readme.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>modular_zh/modules/i18n/readme.md <a href="https://github.com/rrrrrede1/Tianguan13/blob/5dc11166f5898434f45eb8c8db6f740de2c6626f/modular_zh/modules/i18n/readme.md"><img src="git.png" width="16" height="16" title="modular_zh/modules/i18n/readme.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><h2 id="novasector-全量汉化-i18n">NovaSector 全量汉化 (i18n)</h2>
+<p>Module ID: I18N</p>
+<blockquote>
+<p><strong>这份文档只写「难以从代码复原」的东西：文件地图、核心改动面、运维知识。</strong>
+排查规律与已知陷阱见 <code>AGENTS.md</code> 的「Internationalization」节；命令速查见 <code>tools/i18n/README.md</code>；
+历次收口的过程与取舍见 git log（不再抄进本文）。</p>
+</blockquote>
+<h3 id="description">Description:</h3>
+<p>为 NovaSector 提供全量本地化（首发简体中文 zh-Hans）。四层架构：</p>
+<ol>
+<li><strong>编译期（Rust）</strong> <code>tools/i18n/</code>：基于 SpacemanDMM 的 <code>dreammaker</code> 解析器，把玩家可见字符串抽成带
+占位符（<code>{0}</code>/<code>{1}</code>…）的英文模板、改写调用点为 <code>LANG/LANGU(...)</code>，产出主目录 <code>strings/i18n/en/*.json</code>。</li>
+<li><strong>运行时（DM + rust_g）</strong> 本模块 <code>code/</code>：
+<ul>
+<li><code>runtime.dm</code> —— 查表与占位符填充（<code>lang_format</code>/<code>lang_format_for</code>）、name/desc <strong>反查表</strong>
+（<code>lang_build_reverse</code>）、TGUI 负载本地化（P1，<code>lang_reverse_tree</code>/<code>lang_reverse_phrase_tgui</code>）。</li>
+<li><code>fallback.dm</code> —— 输出边界的落地层：整串精确反查 → 剥冠词再精确 → 编号/数量前后缀与两端装饰
+（括号、冒号、<code>- </code>/<code>* </code> 列表记号）→ 模板逆匹配 → 多行逐行 / 多句逐句 → 组合名与「区域名 + 其余」按段拆。
+除模板外每一步都要求被拆出的部分<strong>整串精确命中</strong>才动。
+（曾有第四层「字面 AC 子串替换」，已整层删除，理由见 <code>lang_localize_chain</code> 的注释。）</li>
+<li><code>template_match.dm</code> —— <strong>模板逆匹配引擎</strong>：目录里已译的插值模板在输出边界整句命中
+（锚检测 → 逐字面段验证 → 捕获实参递归本地化 → 按 zh 模板重排填充）。</li>
+<li><code>miss_log.dm</code> —— 运行期漏翻采集（config <code>I18N_LOG_MISSES</code>，默认关）。</li>
+<li><code>fonts.dm</code> + <code>fonts/*.ttf</code> —— maptext 中文像素字体（见下「字体」）。</li>
+</ul>
+</li>
+<li><strong>TGUI（TypeScript）</strong>：<code>packages/tgui</code> 的 JSX 静态文本、可翻 props 与显式 <code>defineMessage(context, source)</code>
+消息查前端目录；动态 DM 负载保持 canonical 值，译文通过 <code>json_data[&quot;i18n&quot;]</code> overlay 只作用于显示。</li>
+<li><strong>翻译</strong>：机翻预填（<code>tools/i18n/mt/</code>）+ 人工校对（<code>strings/i18n/</code> 是扁平 JSON，可导入任意在线平台）。</li>
+</ol>
+<p><strong>locale 解析</strong>：<code>LANG(key, args)</code> 与 <code>LANGU(user, key, args)</code> 均使用<strong>全服 locale</strong>
+（<code>GLOB.i18n_server_locale</code>）——广播类文本一条字符串展示给多名观察者，无法按单人区分。
+TGUI 的 <code>config.locale</code> 同源注入。</p>
+<p><strong>atom/turf name 与 desc 不原地翻译</strong>：<code>name</code>、<code>desc</code> 都是 BYOND <code>appearance</code> 字段，在每个
+<code>/atom/Initialize</code> 与 <code>/turf/Initialize</code> 里改写它们，等于让地图加载期对每个实例各做两次外观变更
+（appearance 本身是内化 + 引用计数的，同型实例仍共享一份，所以代价是 <strong>churn</strong>，不是「每实例一份外观」）。
+详见 <code>modular_zh/modules/lighting_desync_debug/readme.md</code>。实例因此保留 canonical English，
+显示边界才翻：</p>
+<ul>
+<li><code>/atom/get_examine_name</code>（examine 名）、<code>/atom/examine</code> 的 <code>desc</code>、<code>/atom/MouseEntered</code> 的 hover
+screentip，统一走 <code>lang_localize_name_for_display</code>（<strong>按类型取键</strong> → 精确反查 → 「区域名 + 类型名」
+分段翻；显示边界不过字面 AC）。</li>
+<li><code>/mob</code> 覆盖该 proc：<code>name</code> 偏离 <code>initial(name)</code> 即视为<strong>身份名</strong>（角色名、宠物挂牌、赛博编号、
+ERT 头衔）一律不翻，哪怕撞上目录短语；仍等于 <code>initial(name)</code> 的才是类型标签。</li>
+<li>普通 atom 的 <code>TRAIT_WAS_RENAMED</code> 继续保护 item/loadout 玩家改名。</li>
+<li>TGUI 负载不再被就地改写：P1（<code>lang_reverse_phrase_tgui</code>）只把「英文 → 译文」收进 overlay
+（<code>json_data[&quot;i18n&quot;]</code>），值保持 canonical English，由前端渲染期查表。只有 <code>payload_prose_keys</code>
+那批散文仍就地翻。</li>
+<li>TGUI 负载里没有 atom、只有字符串，上面那条 <code>initial(name)</code> 判据用不上。玩家角色名改在<strong>设名的那一刻</strong>
+登记进 <code>GLOB.i18n_identity_names</code>（<code>identity_names.dm</code>：<code>/mob/Login</code>、<code>fully_replace_character_name</code>，
+同样只收偏离 <code>initial(name)</code> 的名字），P1 见到它们不翻，并在 overlay 里登记成原样，压住前端静态目录里
+的同形词条（角色名 <code>Not</code> 撞上电路「非门」、在环绕菜单里显示成「不是」即此）。</li>
+</ul>
+<p><strong>聊天曾经有一处结构性缺口，2026-08-20 才修</strong>（这里原来写着「聊天不受影响」，是错的，留作教训）：
+<code>[src]</code> 出现在句子里时 rewrite 会把它抬成 LANG 实参（<code>LANG(&quot;obj.…&quot;, list(src))</code>，仅 <code>list(src</code> 这一
+形状全仓 3000+ 处），但 <code>lang_interpolate</code> <strong>只对 <code>istext(arg)</code> 的实参</strong>调 <code>lang_localize_arg</code> ——
+atom 实参走的是 <code>&quot;[arg]&quot;</code>，插进去的是<strong>英文名</strong>，还会被 BYOND 自动补一个 &quot;The &quot;。所以真实表现是
+「你仔细查看The floor，但没发现什么值得注意的……」，只能指望聊天层字面 AC 去捞，而 AC 有多词门槛、
+单词名永远捞不着。现在 atom 实参统一走显示边界 <code>lang_localize_name_for_display</code>。</p>
+<p><strong>其余缺口的范围</strong>：名字不作为 LANG 实参、而是整串出现在<strong>非边界路径</strong>时，只剩字面 AC 与 P1 兜。
+P1 的多词门槛已随「不动数据」一起撤掉（单词值只走整串精确反查），AC 仍要求 trim 后多词。
+但要分清两件事：</p>
+<ul>
+<li><strong><code>/datum</code> 的 name 从来不走 atom 那个钩子</strong>（材料、试剂、设计、配方、货运包…），所以那些界面里的
+单词名是<strong>既有状态</strong>，与这次改动无关，历来靠逐界面定点本地化解决（<code>material_container.dm</code> 的
+<code>id</code>/<code>name</code> 分离、<code>_vending.dm</code> 的 <code>lang_reverse_text(record.name)</code> 等）。</li>
+<li>这次改动真正影响的只有**「obj/turf 的 name 直接进 TGUI 负载」**这一小类；高流量的那些
+（售货机、LootPanel、MOD、传真、电梯、骡车、材料、手术、储物袋可容纳列表）早已有定点本地化。</li>
+</ul>
+<p><strong>逐界面补齐（2026-08-17）</strong>：按「该处 act 是否用 name」机械筛过全仓 181 个
+<code>&quot;name&quot; = x.name</code> 形状的负载点，改掉 67 处、明确跳过其余。判据与常见误伤：</p>
+<ul>
+<li><strong>跳过</strong>：管理/调试面板（MC、动态规则、事件日志、生成面板、外观调试、wiremod 端口——端口名在电路
+里当连接标识符）、身份名（角色/机组记录/通缉/囚犯 ID/pAI/虚拟宠物/赛博/无人机/soulcatcher 的灵魂）、
+玩家自己输入的文本（侦探板的案件名）、<strong>日志负载</strong>（<code>mob_helpers.dm</code> 的手持物名进的是
+<code>logger.Log</code>，不是 UI）、以及 name 本身就是回传标识符的（法架 <code>link_act(ref, name)</code>、
+机器人公告 <code>picked: button.name</code>、外星探索无人机的 <code>tool_type: cargo.name</code>、恶意 AI 模块选择器、
+街机装备、偏好菜单的个性/增强件——后两类已由 <code>labels.rs</code> 桥进前端目录）。</li>
+<li><strong>name 是 act 动作串又必须显示译文</strong>的，另发字段：borg 注射器/调酒器前端写的是 <code>act(reagent.name)</code>，
+所以 DM 加发 <code>display_name</code>、TSX 渲染 <code>display_name ?? name</code>，<code>act()</code> 与选中态比较仍走英文
+（同 <code>medical_tools.dm</code> 的 <code>id</code>/<code>name</code> 拆法）。</li>
+<li><strong>同一负载里已有 id/ref 的</strong>（材料容器、结晶器、弹药工作台、货运包、试剂查询…）直接翻 <code>name</code>；
+材料容器的 <code>id</code> 顺手从 <code>lang_unreverse_text(material.name)</code> 简化成 <code>material.name</code>——实例名现在
+本就是英文，不必再倒查。</li>
+</ul>
+<p><strong>标识符兼作显示值时，翻译只作用于显示契约</strong>：</p>
+<ul>
+<li>常规 DM 负载由 <code>lang_reverse_tree</code> 收集 overlay；原值逐字节不变，<code>act()</code>、比较与查表继续使用 canonical
+English。散文键只有在 <code>policy.json</code> 的 <code>payload_prose_keys</code> 显式登记后才允许就地翻译。</li>
+<li>静态标签由 <code>labels.rs</code> 按类型/proc 语义桥进前端目录。单词值与多词值都可进入 overlay 的整串精确查表，
+但子串替换仍只接收多词 key，防止单词从标识符或其它单词内部开火。</li>
+<li>新代码需要消歧时使用 <code>defineMessage(context, source)</code>；需要“值不动、标签翻译”时使用
+<code>localizedOption</code> / <code>localizedDropdownOption</code>。上下文 key 与普通 source key 分开编译，payload overlay
+不能覆盖显式消息。</li>
+<li>运行时域由 <code>strings/i18n/catalog-domains.json</code> 声明。<code>tgui.json</code> 属于 <code>tgui</code> 域，不再进入 DM
+<code>global_reverse</code>；<code>_state_words.json</code> 等域内表也不会扩大全局反查面。</li>
+</ul>
+<p>已补上的两处宽覆盖边界：</p>
+<ul>
+<li><code>tgui_input_list</code>（<code>code/modules/tgui_input/list.dm</code>）：选项文本整串反查（无词数门槛），
+<code>items_map</code> 用<strong>同一个显示串</strong>作键，回传后取回原值；<code>default</code> 一并换成显示形态，否则前端预选落空。
+<code>items</code> 在 P1 的 <code>payload_skip_keys</code> 里，所以这里是唯一的本地化点。往返由 <code>i18n_display_boundary</code> 守。</li>
+<li>径向菜单（<code>code/_onclick/hud/screen_objects/radial.dm</code>）：切片 <code>name</code> 只当 tooltip 标题
+（标识符走 <code>E.choice</code>），在 <code>setup_menu</code> 里过 <code>lang_localize_display_name</code>。</li>
+</ul>
+<p>剩余长尾的补法是：在 ui_data 里保留 canonical value 并让 overlay 翻显示；或按类型桥进前端目录
+（<code>labels.rs TYPE_VAR_RULES</code>）。不要为个别界面放宽聊天字面 AC：AC 的职责只剩运行期拼接且无法
+LANG 化的散文，不适合短标签与标识符。</p>
+<p><strong>目录位置</strong>：<code>strings/i18n/&lt;locale&gt;/&lt;namespace&gt;.json</code>。必须在 <code>strings/</code>（已被 git 跟踪）；
+不可用 <code>data/</code>（被 .gitignore 忽略）。</p>
+<h3 id="文件地图-按固定路径加载-不可随意挪动">文件地图（按固定路径加载，<strong>不可随意挪动</strong>）:</h3>
+<p><strong>译文与策略</strong></p>
+<ul>
+<li><code>strings/i18n/&lt;locale&gt;/*.json</code> —— 译文目录。DM 运行时从 <code>STRING_DIRECTORY/i18n/</code> 加载。
+<code>_</code> 前缀的是<strong>手维护</strong>表（<code>_state_words</code> 状态词、<code>_chrome</code> 大厅/状态栏/法则标签、<code>_map_names</code> 地图名、
+<code>_map_descs</code> 地图 desc、<code>_wires</code> 电线名…）。</li>
+<li><code>strings/i18n/catalog-domains.json</code> —— <strong>运行时域与文件所有权清单</strong>。<code>forward</code>、<code>global_reverse</code>、
+<code>tgui</code> 与 named scoped domain 的边界以它为准；新增目录文件必须先登记。</li>
+<li><code>strings/i18n/type_vars.json</code> —— <strong>类型显示名/描述表</strong>（<code>extract</code> 产出，勿手改）：<code>type → 目录 key</code>，
+DM 继承已在 build 期展开。显示边界（<code>lang_localize_name_for_display</code> / <code>lang_localize_desc_for_display</code>）
+在 <code>name/desc</code> 仍等于类型初值时按<strong>类型</strong>直取键走正向目录，不再拿运行期字符串倒查——没有多词门槛
+（单词名也能落地）、没有同形异义碰撞。miss 时回落原有反查链。<strong>实例数据永不改写</strong>，该不变量由
+<code>nova-i18n lint</code> 规则 C 守（类型变量声明不得含 LANG；运行期 <code>name = LANG(...)</code> 只放行白名单）。</li>
+<li><code>strings/i18n/policy.json</code> —— <strong>三端标识符策略单一来源</strong>：DM（<code>payload_skip_keys</code>/<code>payload_prose_keys</code>）、
+TS（<code>translatable_props</code>/<code>option_text_props</code>/<code>no_auto_translate</code>，经 <code>tgui-catalog.mjs sync</code> 复制到
+<code>tgui/packages/tgui/i18n/policy.json</code>，两份都提交）、Rust（<code>identifier_dot_procs</code>）共读。
+<strong>新增「值兼标识符」登记只改这一个文件。</strong></li>
+</ul>
+<p><strong>运行时（钉死路径）</strong></p>
+<ul>
+<li><code>code/__DEFINES/~zh_defines/i18n.dm</code> —— <code>LANG</code>/<code>LANGU</code> 宏与 locale 常量。</li>
+<li><code>tgui/packages/tgui/i18n/</code> —— 前端运行时：<code>catalog.ts</code>/<code>localize.ts</code>/<code>jsx-runtime.ts</code> + 打包子集
+<code>&lt;locale&gt;.json</code>。靠 <code>tgui/i18n</code> 别名 + SWC <code>importSource</code> 解析，<strong>必须在 tgui 包内</strong>。</li>
+<li><code>modular_zh/modules/i18n/icons/lobby/*.dmi</code> —— 大厅按钮中文重绘（由 <code>tools/i18n/lobby-buttons/</code> 生成）。上游 2026-09 删掉了 screen-object 大厅（<code>/atom/movable/screen/lobby</code>，改为客户端 HTML 菜单；Nova 侧该菜单整段 <code>ZH EDIT REMOVAL</code>，大厅由 <code>title_screen</code> 模块提供），原 <code>SlowInit</code> 换图覆盖已随之删除，这批 .dmi 目前无引用。</li>
+<li><code>config/game_options.txt</code> —— <code>I18N_SERVER_LOCALE</code> / <code>I18N_CHAT_FALLBACK</code> / <code>I18N_LOG_MISSES</code>。
+<strong>无 CI workflow</strong>：lint 与重同步均本地手动跑。</li>
+</ul>
+<p><strong>工具链</strong>（都在 <code>tools/i18n/</code>，<strong>勿移动</strong>：移动需改 ~71 处构建/脚本引用）</p>
+<ul>
+<li><code>src/*.rs</code> —— <code>extract</code> / <code>rewrite</code> / <code>labels</code> / <code>verbs</code> / <code>lint</code> / <code>pseudo</code>。</li>
+<li><code>src/labels.rs</code> + <code>dm_labels.json</code> —— 按类型路径抽 DM <strong>显示名</strong>桥进前端目录
+（职业/怪癖/物种/配装/个性…，供 TS 端只翻显示、<code>act()</code> 回传仍用英文）。</li>
+<li><code>tgui-catalog.mjs</code> —— TGUI 静态文本抽取 + 同步前端子集（<code>tgui:build</code> 自动跑）。</li>
+<li><code>map-descs.mjs</code> —— 收集 <code>.dmm</code> 里的 <code>desc</code> 实例变量覆盖（解析器看不到这类，须单独扫）。</li>
+<li><code>resync.sh</code> —— 合并上游后一键重同步。<code>mt/</code> —— 机翻 + 术语表 + keep-english 白名单。</li>
+<li><code>pseudo-test.sh</code> —— <strong>伪 locale 门禁</strong>（跑全量单测，抓「标识符被反查变异 → 功能破坏」）。</li>
+<li><code>test.sh</code> —— <strong>可选</strong>本地测试入口（默认覆盖率分栏；<code>catalog</code> = 真 zh-Hans 单测）。不是 git hook。</li>
+</ul>
+<h3 id="核心-非模块化-改动面">核心（非模块化）改动面:</h3>
+<p>绝大多数汉化逻辑在 <code>tools/i18n/</code>、本模块与 <code>modular_nova/master_files/</code>。核心 <code>code/</code> 的改动只有两类，
+都带 <code>ZH EDIT</code> 标记：</p>
+<ol>
+<li><strong>落地钩子</strong>——把输出边界接进兜底层：<code>game/atom/atom_examine.dm</code>（examine name/desc）、
+<code>game/atom/_atom.dm</code>（hover screentip）、<code>modules/tgchat/to_chat.dm</code>（聊天）、<code>datums/browser.dm</code>（browse）、
+<code>controllers/subsystem/statpanel.dm</code>（状态栏）、<code>_onclick/hud/screen_objects/new_player.dm</code>（大厅 maptext）、
+<code>__HELPERS/priority_announce.dm</code>（公告）、<code>modules/tgui/tgui.dm</code>（注入 <code>config.locale</code> + P1）。</li>
+<li><strong>运行期拼串处的定点反查</strong>——整串是运行期产物、不可能是目录键的地方（公告 <code>%VAR</code> 值、ID 卡职务、
+emote 派发、书本内容、<code>EXAMINE_HINT</code> 宏…）。</li>
+</ol>
+<p><code>modular_nova/master_files/</code> 下的 core override 走 <code>. = ..()</code> 覆盖而非复制上游 proc
+（storage 的可容纳列表、PDA/便衣 ID 的显示名、config entries 等）。</p>
+<h3 id="defines">Defines:</h3>
+<p><code>code/__DEFINES/~zh_defines/i18n.dm</code>：<code>LANGUAGE_LOCALE_EN</code>、<code>LANGUAGE_LOCALE_ZH_HANS</code>、
+<code>DEFAULT_UI_LOCALE</code>、<code>I18N_SUBDIRECTORY</code>、<code>LANG(key, args)</code>、<code>LANGU(user, key, args)</code>。</p>
+<h3 id="included-files-that-are-not-contained-in-this-module">Included files that are not contained in this module:</h3>
+<ul>
+<li><code>strings/i18n/&lt;locale&gt;/*.json</code> —— 译文目录。</li>
+<li><code>tools/i18n/</code> —— 抽取/改写工具与机翻流水线。</li>
+<li><code>tgui/packages/tgui/i18n/</code> —— 前端运行时与打包目录（英文原文作 key，缺失回退英文）。</li>
+</ul>
+<h3 id="运行服务器-已知问题">运行服务器 / 已知问题:</h3>
+<p><strong>切全服中文</strong>：<code>config/game_options.txt</code> 写 <code>I18N_SERVER_LOCALE zh-Hans</code>。配置启动时读，<strong>无需重编译</strong>。</p>
+<p><strong>聊天落地层（两个开关）</strong></p>
+<ul>
+<li><strong><code>I18N_CHAT_FALLBACK</code></strong>（本仓库 <code>1</code>）：聊天是否走 HTML 切块 + 整串精确反查 + 模板逆匹配。
+browse / 状态栏 / 大厅 maptext / 气泡在 locale≠en 时一直走这一层。</li>
+</ul>
+<blockquote>
+<p><strong>字面 AC 已整层删除</strong>（原 <code>I18N_CHAT_AC</code> 开关、<code>lang_fallback_setup</code>、<code>lang_fallback_pattern_safe</code>
+与 <code>_fallback.json</code> 一并移除）。两条理由：生产语料实测它只贡献 4.4% 覆盖且产物是「中文碎片嵌在
+英文句里」，比全英文更难看；字典由反查表现算 93,039 条多词模式，每局 <code>world.Reboot()</code> 后重建一次，
+<code>json_encode</code> 出两个约 5 MB 的连续字符串，是 32 位 DreamDaemon 地址空间耗尽（SIGABRT in
+librust_g.so）的主要推手。原先靠它落地的 21 条大厅/状态栏/法则标签改为在渲染点整串精确反查
+（<code>_chrome.json</code>，译文逐字未变）；职业描述那类「基础句 + 整句后缀」改走
+<code>lang_localize_sentence_suffixes</code> 按句切分。模板引擎自己的锚自动机（<code>i18n_tpl_*</code>）不在此列。</p>
+</blockquote>
+<p><strong>字体</strong>：核心 maptext 字体只含拉丁字形，汉字会回退到系统字体微缩 → 模糊。<code>fonts.dm</code> 注册
+Fusion Pixel 8px（OFL-1.1），<code>interface/skin.dmf</code> 把它<strong>追加为回退字体</strong>——拉丁字仍走原像素字体、
+汉字落到它。无需 locale 门控（英文服永不请求汉字字形，仅多打包 3.4MB）。</p>
+<p><strong>NixOS 启动</strong>：<code>nix develop</code> → <code>tools/build/build.sh</code> → <code>DreamDaemon tgstation.dmb &lt;port&gt; -trusted</code>。
+<code>librust_g.so</code> 由 devShell 自动软链（缺它日志子系统会卡死，见 <code>nix/rust_g.nix</code>）。</p>
+<p><strong>前端依赖会静默陈旧（部署必看）</strong>：跨过上游 tgui-core 升级的<strong>老 checkout</strong>，<code>bun install</code> 可能报
+&quot;no changes&quot; 却把旧版本留在 <code>packages/*/node_modules/tgui-core</code> 里遮蔽根目录的正确版本 —— 构建出的
+bundle 是旧的，且没有任何报错。全新 clone 不受影响。自检与修复：</p>
+<pre><code class="language-sh">python3 -c &quot;import json;print(json.load(open('tgui/packages/tgui/node_modules/tgui-core/package.json'))['version'])&quot; 2&gt;/dev/null || echo &quot;走根目录(正常)&quot;
+# 若打印的版本与 tgui/package.json 声明不符：
+rm -rf tgui/node_modules &amp;&amp; bun install
+</code></pre>
+<p><strong>32 位 rust_g iconforge OOM（与 i18n 无关）</strong>：BYOND/rust_g 在 Linux 是 <strong>32 位</strong>进程（~3GB 地址空间），
+iconforge 全核并行生成图集会撑爆 → Rust OOM <code>abort</code>（表现为<strong>客户端停在大厅、服务端不再刷日志</strong>）。
+<code>nix/byond.nix</code> 的包装器已默认 <code>RAYON_NUM_THREADS=2</code>。另 <code>controllers/subsystem/processing/greyscale.dm</code>
+把 GAGS 异步加载限流到 16 个在途任务，避免启动/换图时 <code>std::thread::spawn</code> panic → <code>SIGABRT</code>。</p>
+<h3 id="credits">Credits:</h3>
+<p>NovaSector i18n 基础设施。DM 解析复用 SpaceManiac/SpacemanDMM 的 <code>dreammaker</code> crate (GPL-3.0)。</p></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/rrrrrede1/Tianguan13/tree/5dc11166f5898434f45eb8c8db6f740de2c6626f">5dc1116</a> (main) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

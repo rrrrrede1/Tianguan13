@@ -1,0 +1,46 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_zh/modules/tts_expression/readme.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>modular_zh/modules/tts_expression/readme.md <a href="https://github.com/rrrrrede1/Tianguan13/blob/5dc11166f5898434f45eb8c8db6f740de2c6626f/modular_zh/modules/tts_expression/readme.md"><img src="git.png" width="16" height="16" title="modular_zh/modules/tts_expression/readme.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><h2 id="title-expressive-tts">Title: Expressive TTS</h2>
+<p>MODULE ID: TTS_EXPRESSION</p>
+<h3 id="description">Description:</h3>
+<p>Uses the expressive features of qwen-audio TTS models through the SS13 TTS adapter:</p>
+<ul>
+<li>Emotion and nonverbal tags picked from how a line is said: yelling, whispering, last words in crit, and keywords in custom say verbs (<code>sobs*...</code>, <code>低声*...</code>, <code>laughs*...</code>).</li>
+<li>Speech overheard from just outside whisper range is voiced as blips, matching its starred chat text.</li>
+<li>A free-text voice description per character (age, timbre, accent or dialect), sent to the model as a natural-language instruction, plus a speaking rate preference.</li>
+<li>Broadcast-style delivery for station-wide announcements.</li>
+<li>Readable voice labels in the preferences menu, random voices limited to adult voices in the server's language, and migration of voice IDs retired by a model change.</li>
+<li>A mood picker in the chat box that inserts custom say verbs matching those keywords.</li>
+<li>Humanoids perform generic vocal emotes (laugh, sigh, cough, cry, scream...) in their own TTS voice. Species emotes keep their sounds, listeners without speech TTS hear the stock sound, and a character preference turns it off.</li>
+<li>Donor-only custom voices: voice design from a description, or voice cloning from an uploaded recording with a consent statement. Every voice needs admin approval (<code>审核定制音色</code>); recordings are deleted after review and cloned voices carry the provider's AIGC watermark. Players open the studio from Voice Settings or the <code>定制音色</code> OOC verb.</li>
+</ul>
+<p>The extras need the <a href="https://github.com/sernseek/ss13-tts">ss13-tts</a> server. Every extra is optional: its <code>/tts-voice-info</code> endpoint reports what the model supports, and a TTS server without it receives the same requests as before.</p>
+<h3 id="tg-proc-changes">TG Proc Changes:</h3>
+<ul>
+<li>code\controllers\subsystem\tts.dm &gt; /datum/controller/subsystem/tts/proc/establish_connection_to_tts, /datum/controller/subsystem/tts/proc/queue_tts_message, /datum/controller/subsystem/tts/proc/random_tts_voice, /datum/controller/subsystem/tts/proc/play_tts, /datum/controller/subsystem/tts/fire, /datum/tts_request</li>
+<li>code\datums\emotes.dm &gt; /datum/emote/proc/run_emote</li>
+<li>code\game\say.dm &gt; /atom/movable/proc/do_tts_message</li>
+<li>code\modules\mob\living\living_say.dm &gt; /mob/living/proc/say, /mob/living/Hear, /mob/living/send_speech</li>
+<li>code\modules\tgui_input\say_modal\modal.dm &gt; /datum/tgui_say/proc/load</li>
+<li>code\modules\client\preferences\middleware\tts.dm &gt; /datum/preference_middleware/tts/proc/play_voice, /datum/preference_middleware/tts/proc/play_voice_robot</li>
+<li>code__HELPERS\tts.dm &gt; /proc/tts_queue_global_announcement</li>
+</ul>
+<h3 id="defines">Defines:</h3>
+<ul>
+<li>code__DEFINES~zh_defines\tts_expression.dm</li>
+</ul>
+<h3 id="master-file-additions">Master file additions</h3>
+<ul>
+<li>modular_nova\master_files\code\modules\client\preferences\voice.dm &gt; voice labels and retired voice migration</li>
+<li>modular_nova\master_files\code\modules\client\preferences\middleware\tts.dm &gt; <code>open_voice_studio</code> action</li>
+</ul>
+<h3 id="included-files-that-are-not-contained-in-this-module">Included files that are not contained in this module:</h3>
+<ul>
+<li>code\modules\unit_tests~zh\tts_controls.dm &gt; /datum/unit_test/tts_expression</li>
+<li>modular_nova\modules\voice_actor_quirk\code\voice_actor_preferences.dm &gt; voice labels and retired voice migration</li>
+<li>tgui\packages\tgui\interfaces\PreferencesMenu\preferences\features\character_preferences\nova\character_voice.tsx</li>
+<li>tgui\packages\tgui\interfaces\PreferencesMenu\CharacterPreferences\vocals.tsx</li>
+<li>tgui\packages\tgui\interfaces\TtsVoiceStudio.tsx</li>
+<li>tgui\packages\tgui\interfaces\TtsVoiceReview.tsx</li>
+<li>tgui\packages\tgui-say\MoodPicker.tsx, tgui\packages\tgui-say\TguiSay.tsx, tgui\packages\tgui-say\styles\styles.scss</li>
+</ul>
+<h3 id="credits">Credits:</h3>
+<p>sernseek</p></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/rrrrrede1/Tianguan13/tree/5dc11166f5898434f45eb8c8db6f740de2c6626f">5dc1116</a> (main) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

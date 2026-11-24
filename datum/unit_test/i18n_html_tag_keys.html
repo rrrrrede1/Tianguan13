@@ -1,0 +1,14 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../"><link rel="stylesheet" href="dmdoc.css"><title>/datum/unit_test/i18n_html_tag_keys - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>i18n_html_tag_keys <aside>/<a href="datum.html">datum</a>/<a href="datum/unit_test.html">unit_test</a>/<a href="datum/unit_test/i18n_html_tag_keys.html">i18n_html_tag_keys</a></aside> <a href="https://github.com/rrrrrede1/Tianguan13/blob/5dc11166f5898434f45eb8c8db6f740de2c6626f/code/modules/unit_tests/~zh/i18n_html_tag_keys.dm#L17"><img src="git.png" width="16" height="16" title="code/modules/unit_tests/~zh/i18n_html_tag_keys.dm 17"></a></h1><p>目录键里嵌着 HTML 标签的整句，必须仍能在聊天落地层命中。</p>
+<p>抽取器照抄源码字面量，标签就留在键里；而 <code>lang_fallback_apply_html</code> <strong>按标签切块</strong>，只把标签
+之间的纯文本送去查表。两边形态天生对不上，于是「目录有键、译文也有，玩家却看到英文」——
+而且往往比不翻更难看，因为接着还会被字面 AC 咬中间某个词组：
+· <code>&quot;&lt;b&gt;But none of its eggs hatched!&lt;/b&gt;&quot;</code>
+切出裸句 → 查不到 → 字面 AC 用碎片 &quot;one of&quot; 咬出「But n其中一只 its eggs hatched!」
+· <code>&quot;There is a sticker displaying the &lt;b&gt;Chief Engineer's SEAL OF APPROVAL.&lt;/b&gt;&quot;</code>
+标签<strong>夹在句中</strong>，切成两个半句 → 只有职业名被 AC 咬中
+→「There is a sticker displaying the 总工程师's SEAL OF APPROVAL」</p>
+<p>两条落地通道各修一处，这里分别钉住：
+① 边缘标签（整句被 <code>&lt;b&gt;</code>/<code>&lt;span&gt;</code> 包住）→ lang_build_reverse 的「剥标签变体键」；
+② 句中内联标签 → lang_fallback_apply_html 的「跨内联标签整段查表」前置 pass。
+locale 不是 zh-Hans 时允许跳过；locale 已是 zh-Hans 却没加载目录 = 假绿，必须失败。
+跑 <code>bash tools/i18n/test.sh catalog</code>。</p></main><footer>tgstation.dme <a href="https://github.com/rrrrrede1/Tianguan13/tree/5dc11166f5898434f45eb8c8db6f740de2c6626f">5dc1116</a> (main) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

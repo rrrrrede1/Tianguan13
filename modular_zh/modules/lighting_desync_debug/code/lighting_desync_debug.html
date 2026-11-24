@@ -1,0 +1,19 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_zh/modules/lighting_desync_debug/code/lighting_desync_debug.dm - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a> — <a href="modular_zh/modules/lighting_desync_debug/code/lighting_desync_debug.html#define">Define Details</a></header><main><h1>modular_zh/modules/lighting_desync_debug/code/lighting_desync_debug.dm <a href="https://github.com/rrrrrede1/Tianguan13/blob/5dc11166f5898434f45eb8c8db6f740de2c6626f/modular_zh/modules/lighting_desync_debug/code/lighting_desync_debug.dm"><img src="git.png" width="16" height="16" title="modular_zh/modules/lighting_desync_debug/code/lighting_desync_debug.dm"></a></h1><table class="summary" cellspacing="0"><tr><th><a href="modular_zh/modules/lighting_desync_debug/code/lighting_desync_debug.html#define/LIGHTING_RESYNC_DARK_STATE">LIGHTING_RESYNC_DARK_STATE</a></th><td>LIGHTING_DESYNC_DEBUG</td></tr><tr><th><a href="modular_zh/modules/lighting_desync_debug/code/lighting_desync_debug.html#define/LIGHTING_RESYNC_COOLDOWN">LIGHTING_RESYNC_COOLDOWN</a></th><td>防刷。重同步要遍历整屏 turf 并写两趟外观，不该被连点。</td></tr></table><h2 id="define">Define Details</h2><h3 id="define/LIGHTING_RESYNC_COOLDOWN"><aside class="declaration">#define </aside>LIGHTING_RESYNC_COOLDOWN <a href="https://github.com/rrrrrede1/Tianguan13/blob/5dc11166f5898434f45eb8c8db6f740de2c6626f/modular_zh/modules/lighting_desync_debug/code/lighting_desync_debug.dm#L29"><img src="git.png" width="16" height="16" title="modular_zh/modules/lighting_desync_debug/code/lighting_desync_debug.dm 29"></a></h3><p>防刷。重同步要遍历整屏 turf 并写两趟外观，不该被连点。</p><h3 id="define/LIGHTING_RESYNC_DARK_STATE"><aside class="declaration">#define </aside>LIGHTING_RESYNC_DARK_STATE <a href="https://github.com/rrrrrede1/Tianguan13/blob/5dc11166f5898434f45eb8c8db6f740de2c6626f/modular_zh/modules/lighting_desync_debug/code/lighting_desync_debug.dm#L27"><img src="git.png" width="16" height="16" title="modular_zh/modules/lighting_desync_debug/code/lighting_desync_debug.dm 27"></a></h3><p>LIGHTING_DESYNC_DEBUG</p>
+<p>玩家自助按钮：强制重新同步视野内的静态 turf 光照。</p>
+<p>绕开一个 BYOND 引擎缺陷：视野被整批替换时（瞬移、换 z 层、鬼魂观察落地、新出生），
+客户端拿到的 turf 静态光照外观是错的，而服务端认定外观没变、永不重发，于是整屏
+呈灰色遮罩且<strong>不会自愈</strong>——站着不动 60 秒一格都不恢复，只有静态光照真正变化
+（例如开门触发 reconsider_lights）或那些格子离开视野再进来才会修正。</p>
+<p>生产环境实测过三种手段，这里用的是唯一有效的那种：</p>
+<ol>
+<li>仅调用 lighting_object.update() 重算外观 —— 无效</li>
+<li>从 turf.vis_contents 摘除再加回          —— 无效</li>
+<li>先改成明显不同的外观，跨 tick 后再还原    —— 有效</li>
+</ol>
+<p>失配发生在<strong>外观 ID 这一层</strong>：既不是外观算错了，也不是容器关系的问题，只有制造一次
+真实且跨越 tick 边界的外观 diff 才能逼服务端重发。</p>
+<p>做成手动而非自动，是因为根因（为什么只在高人数服触发）尚未查清，不宜让全服在每次
+跳变时都付出代价；交给撞上的玩家自己按。</p>
+<p>上游同类问题：tgstation#95948（被官方标为 BYOND Issue）、#96002，均未修复。
+BYOND 516.1686 仍复现。
+与 lighting_object.update() 里判定「不发光」时写入的 icon_state 一致</p></main><footer>tgstation.dme <a href="https://github.com/rrrrrede1/Tianguan13/tree/5dc11166f5898434f45eb8c8db6f740de2c6626f">5dc1116</a> (main) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

@@ -1,0 +1,7 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../"><link rel="stylesheet" href="dmdoc.css"><title>/datum/unit_test/i18n_suffixed - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>i18n_suffixed <aside>/<a href="datum.html">datum</a>/<a href="datum/unit_test.html">unit_test</a>/<a href="datum/unit_test/i18n_suffixed.html">i18n_suffixed</a></aside> <a href="https://github.com/rrrrrede1/Tianguan13/blob/5dc11166f5898434f45eb8c8db6f740de2c6626f/code/modules/unit_tests/~zh/i18n_suffixed.dm#L10"><img src="git.png" width="16" height="16" title="code/modules/unit_tests/~zh/i18n_suffixed.dm 10"></a></h1><p>i18n「基础句 + 运行期追加后缀」反查（lang_reverse_suffixed）测试。</p>
+<p>守护一整类「目录里有译文却整条显英文」：赏金 description、器官手术 desc 等在 New()/生成期
+用 <code>desc += &quot;…&quot;</code> 追加固定后缀，拼出来的整串<strong>不是目录键</strong>，精确反查连基础句一起 miss。
+lang_reverse_suffixed 负责按已知后缀拆成 base + 后缀分别精确反查再拼回。</p>
+<p>接缝空白是这里唯一的暗礁：手术那条源码自带前导空格，赏金那条靠 DM 续行（<code>&quot;&lt;/br&gt;\</code> + 换行 +
+制表符）。抽取器与 BYOND 对续行空白的处理未必逐字节一致，所以本测试<strong>照抄源码里的续行写法</strong>
+构造被测串——真出现不一致，这里会红，而不是等玩家在赏金台上看到一整条英文。</p></main><footer>tgstation.dme <a href="https://github.com/rrrrrede1/Tianguan13/tree/5dc11166f5898434f45eb8c8db6f740de2c6626f">5dc1116</a> (main) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

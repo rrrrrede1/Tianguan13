@@ -1,0 +1,10 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../"><link rel="stylesheet" href="dmdoc.css"><title>/datum/unit_test/i18n_interpolate - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>i18n_interpolate <aside>/<a href="datum.html">datum</a>/<a href="datum/unit_test.html">unit_test</a>/<a href="datum/unit_test/i18n_interpolate.html">i18n_interpolate</a></aside> <a href="https://github.com/rrrrrede1/Tianguan13/blob/5dc11166f5898434f45eb8c8db6f740de2c6626f/code/modules/unit_tests/~zh/i18n_interpolate.dm#L14"><img src="git.png" width="16" height="16" title="code/modules/unit_tests/~zh/i18n_interpolate.dm 14"></a></h1><p><code>lang_interpolate</code>（LANG 的占位符填充，modular_zh/modules/i18n/code/runtime.dm）的行为测试。</p>
+<p>守的核心是<strong>实参自吞</strong>：旧实现按序 <code>replacetext(&quot;{0}&quot;)</code>、<code>replacetext(&quot;{1}&quot;)</code>…，于是<strong>上一个
+实参写进串里的内容会被下一轮当成模板再扫一遍</strong>。只要某个实参的值里恰好含 <code>{1}</code> —— 纸张文本、
+玩家起的物品名、任何玩家可控串都做得到 —— 它就会被后一个实参顶掉，玩家看到一句错乱的话。
+现改为单趟扫描：实参一旦写进输出就不再参与匹配。</p>
+<p>其余几条锁住单趟扫描不该改变的既有行为：越界占位符原样保留、非 <code>{N}</code> 花括号按字面处理、
+重复占位符各自填充、无实参/无占位符直接返回。</p>
+<p><strong>实参一律用生造词</strong>（Zxqv 系，同 i18n_template_match 的做法）：locale≠en 时 lang_interpolate
+会对文本实参跑 lang_localize_arg，真实英文词（&quot;stick&quot;/&quot;tail&quot;）在真目录或伪 locale 下会被译掉，
+断言就成了「测目录内容」而不是「测填充逻辑」。生造词在任何 locale 下都恒等返回。</p></main><footer>tgstation.dme <a href="https://github.com/rrrrrede1/Tianguan13/tree/5dc11166f5898434f45eb8c8db6f740de2c6626f">5dc1116</a> (main) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

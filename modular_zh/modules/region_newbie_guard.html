@@ -1,0 +1,63 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_zh/modules/region_newbie_guard/readme.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>modular_zh/modules/region_newbie_guard/readme.md <a href="https://github.com/rrrrrede1/Tianguan13/blob/5dc11166f5898434f45eb8c8db6f740de2c6626f/modular_zh/modules/region_newbie_guard/readme.md"><img src="git.png" width="16" height="16" title="modular_zh/modules/region_newbie_guard/readme.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><h2 id="新人软管制-region-newbie-guard">新人软管制（Region Newbie Guard）</h2>
+<p>Module ID: REGION_NEWBIE_GUARD</p>
+<h3 id="description">Description:</h3>
+<p>对「账号游戏时长不足门槛 <strong>且</strong> 连接来源 IP 不在地区名单内」的玩家施加一组临时限制，而不是拒绝其连接。玩家在本回合存活满设定时间后限制自动解除，也可以就地提交申诉由管理员永久豁免。</p>
+<p>限制内容：</p>
+<ul>
+<li><strong>和平化</strong>：<code>TRAIT_PACIFISM</code>，无法主动攻击他人。</li>
+<li><strong>拆解</strong>：无法用扳手、螺丝刀、剪线钳、焊枪、万用表拆解机器、电缆、格栅、窗户与墙。<strong>撬棍刻意不在名单内</strong>——被困住时撬门是新人自救的手段。</li>
+<li><strong>设施操作</strong>：火警、空气警报、大气管道、气罐、APC、供电终端、电缆、按钮、闪光弹、重力发生器、发射器、超物质晶体、大气/通讯电脑、核弹与核磁盘。</li>
+<li><strong>爆破与快速施工</strong>：手雷、气罐炸弹（transfer valve）、RCD、RPD。</li>
+</ul>
+<p><strong>检查（Shift 点击）与指向（中键）永不拦截</strong>——受管制的恰恰是最需要读环境的人。移动、对话、开门、使用电脑与工作台均不受影响。</p>
+<h4 id="关键设计点">关键设计点</h4>
+<ul>
+<li><strong>落点必须是 <code>COMSIG_MOB_CLICKON</code></strong>（<code>code/_onclick/click.dm:77</code>）。它在 <code>tool_act</code>、攻击链与机械交互之前触发。挂在更下游都不行：<code>base_item_interaction()</code> 会<strong>先</strong>跑 <code>tool_act()</code>，再发任何用户侧信号，所以 <code>COMSIG_USER_ITEM_INTERACTION</code> 拦不住工具拆解。</li>
+<li><strong>状态按 ckey 记，不按 mob 记</strong>。存活进度因此能跨克隆、换体与灵魂转移保留。</li>
+<li><strong>所有提示都是私信 + 中英双语</strong>：走 <code>MESSAGE_TYPE_ADMINPM</code> 频道（玩家的私聊标签页），整条 <code>boxed_message</code> 一次发出而不是十几条 <code>to_chat</code>——回合开始时聊天是一面文字墙，必须被读到的通知经不起打散。全部带 <code>skip_i18n_fallback = TRUE</code>，否则聊天层的 AC 兜底会把英文那一半也翻成中文。</li>
+</ul>
+<h4 id="性能取舍">性能取舍</h4>
+<p>热路径是 <code>get_refusal()</code>：受管制玩家<strong>每一次点击</strong>都要过它。</p>
+<ul>
+<li><strong>用 <code>istype()</code> 链而不是 typecache</strong>。<code>istype</code> 是原生类型比较，且不驻留内存；单一个 <code>typecacheof(/obj/machinery/atmospherics)</code> 就要 intern 约 900 条路径。代价是这串比较<strong>顺序敏感</strong>（<code>ismachinery()</code> 那道闸门挪位就会让机器类整片漏出判定，且游戏里不报任何错），由 <code>newbie_guard_refusal</code> 单测钉住。</li>
+<li><strong>顺序按命中率排</strong>：一次 <code>ismachinery()</code> 就滤掉绝大多数点击（地板、mob、物品、墙）。</li>
+<li><strong>返回状态码而非字符串</strong>。消息（连同两种语言）只在真要显示时才拼，被 <code>NEWBIE_GUARD_REFUSAL_COOLDOWN</code> 挡掉的那些一个字都不构造。</li>
+<li><strong>一个共享计时器</strong>驱动全部受管制玩家，不是每人一个循环计时器；<code>GLOB.newbie_guard_active</code> 是活动组件的显式注册表，管理面板与总开关因此不必遍历 <code>GLOB.mob_living_list</code>（数千条，几乎全是简单动物）。</li>
+<li><strong>判定按 ckey 缓存整局</strong>（<code>GLOB.newbie_guard_verdict</code>）。否则每次 Login 都可能再打一次阻塞的 <code>set_exp_from_db()</code>——而 Login 在克隆、换体、aghost 时都会触发，不只是加入回合时。改门槛或重载地区表会清掉这份缓存。</li>
+<li><strong>关闭功能时释放地区表</strong>（<code>newbie_guard_unload_geoip</code>）：整国表是万级段数，没道理在关掉之后还占着整局。</li>
+<li><code>newbie_guard_on_login()</code> 第一行就是配置开关检查——正常班次功能是关的，这条路径必须几乎零成本。</li>
+<li><strong>地区查表按首字节分桶</strong>。BYOND 的 <code>num</code> 是单精度浮点（尾数 24 位），整条 IPv4（最大 4294967295）<strong>存不下</strong>。生成器把每个段按首字节切开、桶内只存低 24 位（最大 16777215，单精度可精确表示）。<code>newbie_guard_geoip</code> 单测锁住这条。</li>
+<li><strong>一切不确定都放行</strong>（fail open）：数据表缺失/损坏、地址无法解析、回环与 RFC1918 内网，一律视为在地区内。一个因为数据文件没了就把所有人管制起来的闸门，比一个谁都不管的闸门坏得多。</li>
+<li>管理员与 deadmin 永不受管制。</li>
+</ul>
+<h4 id="使用">使用</h4>
+<p><strong>开箱即用</strong>：地区数据表（默认中国大陆，5358 段）已生成并提交在 <code>modular_zh/modules/region_newbie_guard/data/allowed_regions.json</code>，随仓库部署，无需任何额外步骤。管理员用 verb「切换新人软管制」（Server 分类，需要 <code>R_SERVER</code>）开启即可，开启时会依次询问时长门槛与存活解除时长。</p>
+<p>「新人软管制名单」（Admin 分类）查看当前受管制玩家、存活进度与永久豁免名单，并可就地批准或撤销豁免。</p>
+<p>玩家提交申诉后，管理员聊天频道会出现带【批准】【驳回】链接的消息。批准即永久豁免并写入 <code>data/newbie_guard_bypass.json</code>（保留天数由 <code>NEWBIE_GUARD_BYPASS_DAYS</code> 控制）。申诉有 5 分钟冷却，避免刷屏。</p>
+<h5 id="更新地区数据表">更新地区数据表</h5>
+<p>表是<strong>单一来源</strong>：只有仓库里那一份，跟着仓库更新走，所有实例因此永远跑同一张表。拿一份 mihomo / v2ray 的 <code>geoip.dat</code>，或每行一条 CIDR 的纯文本：</p>
+<pre><code class="language-sh">node tools/geoip/mihomo-geoip.mjs --input geoip.dat --country CN
+</code></pre>
+<p>默认就写到上面那个提交路径，改完连同代码一起提交、照常部署即可。</p>
+<p><strong>刻意没有 <code>data/</code> 覆盖路径。</strong> <code>data/</code> 在 <code>.gitignore</code> 里（<code>/data/**/*</code>），放那儿的表既到不了别的实例，又会让&quot;这台机器实际拦谁&quot;和&quot;仓库说它拦谁&quot;悄悄对不上——排查时这种不一致比多跑一条命令贵得多。</p>
+<h3 id="tg-proc-file-changes">TG Proc/File Changes:</h3>
+<ul>
+<li>N/A</li>
+</ul>
+<h3 id="modular-overrides">Modular Overrides:</h3>
+<ul>
+<li><code>modular_nova/master_files/code/modules/mob/living/living.dm</code>: <code>/mob/living/Login()</code> 末尾调用 <code>newbie_guard_on_login(src)</code>（与既有的 <code>BAN_PACIFICATION</code> 落点同处）。</li>
+</ul>
+<h3 id="defines">Defines:</h3>
+<ul>
+<li><code>code/__DEFINES/~zh_defines/region_newbie_guard.dm</code>: <code>NEWBIE_GUARD_TRAIT</code>、<code>NEWBIE_GUARD_GEOIP_PATH</code>、<code>NEWBIE_GUARD_BYPASS_PATH</code>、<code>NEWBIE_GUARD_TICK</code>、<code>NEWBIE_GUARD_APPEAL_COOLDOWN</code>、<code>NEWBIE_GUARD_REFUSAL_COOLDOWN</code>、<code>NEWBIE_GUARD_REFUSE_NONE/ITEM/TARGET/TOOL</code></li>
+</ul>
+<h3 id="included-files-that-are-not-contained-in-this-module">Included files that are not contained in this module:</h3>
+<ul>
+<li><code>tools/geoip/mihomo-geoip.mjs</code>：mihomo/v2ray geodata → 运行时查表的转换脚本。</li>
+<li><code>code/modules/unit_tests/~zh/newbie_guard_geoip.dm</code>：地区查表的不变量测试。</li>
+<li><code>code/modules/unit_tests/~zh/newbie_guard_refusal.dm</code>：点击判定表的正反面测试（含「撬棍刻意不拦」这类看着像遗漏的设计点）。</li>
+<li><code>config/config.txt</code>：<code>NEWBIE_GUARD*</code> 配置项说明。</li>
+</ul>
+<h3 id="credits">Credits:</h3>
+<p>sernseek</p></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/rrrrrede1/Tianguan13/tree/5dc11166f5898434f45eb8c8db6f740de2c6626f">5dc1116</a> (main) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

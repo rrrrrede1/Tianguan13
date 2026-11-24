@@ -1,0 +1,14 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../"><link rel="stylesheet" href="dmdoc.css"><title>/datum/unit_test/i18n_display_leaks - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>i18n_display_leaks <aside>/<a href="datum.html">datum</a>/<a href="datum/unit_test.html">unit_test</a>/<a href="datum/unit_test/i18n_display_leaks.html">i18n_display_leaks</a></aside> <a href="https://github.com/rrrrrede1/Tianguan13/blob/5dc11166f5898434f45eb8c8db6f740de2c6626f/code/modules/unit_tests/~zh/i18n_display_leaks.dm#L16"><img src="git.png" width="16" height="16" title="code/modules/unit_tests/~zh/i18n_display_leaks.dm 16"></a></h1><p>守三类「实测才暴露出来」的落地缺口，它们的共同点是：<strong>译文明明在目录里，玩家看到的却是英文
+或半截乱码</strong>——静态审计与合成数据都测不出，只有拿真目录按真实渲染形态跑才会红。</p>
+<p>① <strong>LANG 的非文本实参从前完全没被本地化</strong>。rewrite 把 <code>[src]</code> 抬成实参时给的是 atom 本身
+（<code>list(src)</code> 全仓 3000+ 处），而 lang_interpolate 只对 istext 分支调 lang_localize_arg
+→ 插进去的是英文名，只能指望聊天层的字面 AC 去捞；AC 有多词门槛，于是单词名永远英文
+（实测「你仔细查看The floor，但没发现什么值得注意的……」）。顺带 <code>&quot;[atom]&quot;</code> 还会让 BYOND
+自己补一个 &quot;The &quot;。
+② <strong>目录原值含 BYOND 字面转义/文法宏</strong>（<code>\improper</code>、<code>\n</code>、<code>\[</code>）。它们只在编译期字面量里被
+引擎处理；从 JSON 取回后是字面字符 → 「\improper 太阳系精品热饮」。LANG 路径末尾早有这道
+处理，按类型取键那条新路当时漏了。
+④ <strong>运行期把区域名拼进 name 的那批</strong>（APC / 空气警报 / 火警器）：整串既不是目录键、又常以
+单词结尾，精确反查与字面 AC 双双够不着（实测「Courtroom APC」「Brig 空气警报」）。
+③ <strong>两词碎片进字面 AC 字典</strong>会在句子中间开火：<code>&quot;You can&quot;→&quot;你可以&quot;</code> 把
+<code>You can't stop me, Owl!</code> 咬成「你可以't stop me, Owl!」。</p></main><footer>tgstation.dme <a href="https://github.com/rrrrrede1/Tianguan13/tree/5dc11166f5898434f45eb8c8db6f740de2c6626f">5dc1116</a> (main) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>
